@@ -18,6 +18,10 @@ namespace ProductionLineMQTTClient
         private DateTime lineStartTime;
 
         private TimeSpan totalUptime = TimeSpan.Zero;
+        private TimeSpan totalDowntime = TimeSpan.Zero;
+
+        private DateTime lastStatusChangeTime = default(DateTime); 
+        private TimeSpan statusDuration = TimeSpan.Zero;
 
         private double lineCounter = 0;
         private double wasteCounter = 0;
@@ -70,7 +74,6 @@ namespace ProductionLineMQTTClient
             label6.Width = 460;
             label6.Height = 50;
         }
-
 
         private void InitializeIcons() 
         {
@@ -237,47 +240,6 @@ namespace ProductionLineMQTTClient
             }
         }
 
-        private void StartDowntime() 
-        {
-            if (lastStopTime == default(DateTime)) 
-            {
-                // Records the time when the line stops
-                lastStopTime = DateTime.Now;
-            }
-        }
-
-        private void StopDowntime() 
-        {
-            if (lastStopTime != default(DateTime)) 
-            {
-                // Calculate downtime duration
-                downtimeDuration = DateTime.Now - lastStopTime;
-                label10.Text = $"Downtime: {downtimeDuration.TotalMinutes:F2} minutes";
-                // Reset the stop time
-                lastStopTime = default(DateTime);
-            }
-        }
-
-        private void StartUptime() 
-        {
-            // Track uptime start time
-            lineStartTime = DateTime.Now;
-        }
-
-        private void StopUptime() 
-        {
-            if (lineStartTime != default(DateTime)) 
-            {
-                // Calculate uptime duration
-                TimeSpan currentUptime = DateTime.Now - lineStartTime;
-
-                totalUptime += currentUptime;
-
-                label13.Text = $"Uptime: {totalUptime.TotalMinutes:F2} minutes";
-                lineStartTime = default(DateTime);
-            }
-        }
-
         private void UpdateLineStatus(string status) 
         {
             System.Diagnostics.Debug.WriteLine($"Received Status: {status}");
@@ -316,6 +278,8 @@ namespace ProductionLineMQTTClient
                     // Stop downtime calculation when the line is in production
                     StopDowntime();
                     StartUptime();
+
+                    StartTimer();
                 } 
                 else if (status == "0") 
                 {
@@ -336,6 +300,8 @@ namespace ProductionLineMQTTClient
                     // Start downtime calculation when the line is stopped
                     StartDowntime();
                     StopUptime();
+
+                    StartTimer();
                 } 
                 else 
                 {
@@ -346,7 +312,65 @@ namespace ProductionLineMQTTClient
 
                     successIcon.Visible = false;
                     errorIcon.Visible = false;
+
+                    StopTimer();
                 }
+            }
+        }
+
+        private void StartTimer() 
+        {
+            lastStatusChangeTime = DateTime.Now;  // Record the start time
+        }
+
+        private void StopTimer() 
+        {
+            if (lastStatusChangeTime != default(DateTime)) 
+            {
+                statusDuration = DateTime.Now - lastStatusChangeTime;  // Calculate the duration
+                lastStatusChangeTime = default(DateTime);  // Reset the start time
+            }
+        }
+
+        private void StartDowntime() 
+        {
+            if (lastStopTime == default(DateTime)) 
+            {
+                // Records the time when the line stops
+                lastStopTime = DateTime.Now;
+            }
+        }
+
+        private void StopDowntime() 
+        {
+            if (lastStopTime != default(DateTime)) 
+            {
+                // Calculate downtime duration
+                downtimeDuration = DateTime.Now - lastStopTime;
+                totalDowntime += downtimeDuration;
+                label10.Text = $"Downtime: {totalDowntime.TotalMinutes:F2} minutes";
+                // Reset the stop time
+                lastStopTime = default(DateTime);
+            }
+        }
+
+        private void StartUptime() 
+        {
+            // Track uptime start time
+            lineStartTime = DateTime.Now;
+        }
+
+        private void StopUptime() 
+        {
+            if (lineStartTime != default(DateTime)) 
+            {
+                // Calculate uptime duration
+                TimeSpan currentUptime = DateTime.Now - lineStartTime;
+
+                totalUptime += currentUptime;
+
+                label13.Text = $"Uptime: {totalUptime.TotalMinutes:F2} minutes";
+                lineStartTime = default(DateTime);
             }
         }
 
