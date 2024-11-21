@@ -39,14 +39,15 @@
             label1 = new Label();
             pictureBox1 = new PictureBox();
             tabPage2 = new TabPage();
-            label13 = new Label();
+            label14 = new Label();
+            panel10 = new Panel();
+            panel9 = new Panel();
+            panel8 = new Panel();
+            panel7 = new Panel();
             button1 = new Button();
-            label11 = new Label();
-            label10 = new Label();
             label9 = new Label();
             label8 = new Label();
             label7 = new Label();
-            panel6 = new Panel();
             tabControl1.SuspendLayout();
             tabPage1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
@@ -194,11 +195,12 @@
             // 
             // tabPage2
             // 
-            tabPage2.Controls.Add(panel6);
-            tabPage2.Controls.Add(label13);
+            tabPage2.Controls.Add(label14);
+            tabPage2.Controls.Add(panel10);
+            tabPage2.Controls.Add(panel9);
+            tabPage2.Controls.Add(panel8);
+            tabPage2.Controls.Add(panel7);
             tabPage2.Controls.Add(button1);
-            tabPage2.Controls.Add(label11);
-            tabPage2.Controls.Add(label10);
             tabPage2.Controls.Add(label9);
             tabPage2.Controls.Add(label8);
             tabPage2.Controls.Add(label7);
@@ -210,47 +212,57 @@
             tabPage2.Text = "Productivity Page";
             tabPage2.UseVisualStyleBackColor = true;
             // 
-            // label13
+            // label14
             // 
-            label13.AutoSize = true;
-            label13.Location = new Point(53, 345);
-            label13.Name = "label13";
-            label13.Size = new Size(89, 25);
-            label13.TabIndex = 6;
-            label13.Text = "lblUptime";
+            label14.AutoSize = true;
+            label14.Location = new Point(568, 26);
+            label14.Name = "label14";
+            label14.Size = new Size(69, 25);
+            label14.TabIndex = 10;
+            label14.Text = "label14";
+            // 
+            // panel10
+            // 
+            panel10.Location = new Point(1056, 247);
+            panel10.Name = "panel10";
+            panel10.Size = new Size(160, 243);
+            panel10.TabIndex = 9;
+            // 
+            // panel9
+            // 
+            panel9.Location = new Point(862, 247);
+            panel9.Name = "panel9";
+            panel9.Size = new Size(160, 243);
+            panel9.TabIndex = 9;
+            // 
+            // panel8
+            // 
+            panel8.Location = new Point(669, 247);
+            panel8.Name = "panel8";
+            panel8.Size = new Size(160, 243);
+            panel8.TabIndex = 8;
+            // 
+            // panel7
+            // 
+            panel7.Location = new Point(300, 247);
+            panel7.Name = "panel7";
+            panel7.Size = new Size(363, 243);
+            panel7.TabIndex = 0;
             // 
             // button1
             // 
-            button1.Location = new Point(695, 72);
+            button1.Location = new Point(60, 348);
             button1.Name = "button1";
             button1.Size = new Size(141, 34);
             button1.TabIndex = 5;
-            button1.Text = "calculate OEE";
+            button1.Text = "Calculate OEE";
             button1.UseVisualStyleBackColor = true;
             button1.Click += button1_Click;
-            // 
-            // label11
-            // 
-            label11.AutoSize = true;
-            label11.Location = new Point(899, 77);
-            label11.Name = "label11";
-            label11.Size = new Size(63, 25);
-            label11.TabIndex = 4;
-            label11.Text = "lblOEE";
-            // 
-            // label10
-            // 
-            label10.AutoSize = true;
-            label10.Location = new Point(53, 277);
-            label10.Name = "label10";
-            label10.Size = new Size(113, 25);
-            label10.TabIndex = 3;
-            label10.Text = "lblDowntime";
             // 
             // label9
             // 
             label9.AutoSize = true;
-            label9.Location = new Point(53, 219);
+            label9.Location = new Point(924, 129);
             label9.Name = "label9";
             label9.Size = new Size(142, 25);
             label9.TabIndex = 2;
@@ -259,7 +271,7 @@
             // label8
             // 
             label8.AutoSize = true;
-            label8.Location = new Point(53, 156);
+            label8.Location = new Point(534, 129);
             label8.Name = "label8";
             label8.Size = new Size(142, 25);
             label8.TabIndex = 1;
@@ -268,18 +280,11 @@
             // label7
             // 
             label7.AutoSize = true;
-            label7.Location = new Point(53, 94);
+            label7.Location = new Point(60, 129);
             label7.Name = "label7";
             label7.Size = new Size(186, 25);
             label7.TabIndex = 0;
             label7.Text = "Production Counter: 0";
-            // 
-            // panel6
-            // 
-            panel6.Location = new Point(695, 174);
-            panel6.Name = "panel6";
-            panel6.Size = new Size(267, 243);
-            panel6.TabIndex = 7;
             // 
             // Form1
             // 
@@ -311,8 +316,6 @@
         private Label label4;
         private Label label3;
         private Label label6;
-        private Label label11;
-        private Label label10;
         private Label label9;
         private Label label8;
         private Label label7;
@@ -323,7 +326,10 @@
         private Panel panel4;
         private Panel panel5;
         private Button button1;
-        private Label label13;
-        private Panel panel6;
+        private Panel panel7;
+        private Panel panel10;
+        private Panel panel9;
+        private Panel panel8;
+        private Label label14;
     }
 }

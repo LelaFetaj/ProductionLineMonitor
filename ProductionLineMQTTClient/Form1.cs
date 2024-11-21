@@ -2,6 +2,7 @@ using LiveCharts;
 using LiveCharts.Wpf;
 using MQTTnet;
 using MQTTnet.Client;
+using System.IO;
 using System.Text;
 using System.Windows.Forms.Integration;
 
@@ -13,15 +14,15 @@ namespace ProductionLineMQTTClient
         private System.Windows.Forms.Label lblProductionStatus;
         private Dictionary<string, Label> machineLabels = new Dictionary<string, Label>();
 
+        private System.Windows.Forms.Timer alertTimer;
         private DateTime lastStopTime;
         private TimeSpan downtimeDuration;
         private DateTime lineStartTime;
 
         private TimeSpan totalUptime = TimeSpan.Zero;
         private TimeSpan totalDowntime = TimeSpan.Zero;
-
-        private DateTime lastStatusChangeTime = default(DateTime); 
-        private TimeSpan statusDuration = TimeSpan.Zero;
+        private TimeSpan statusDuration;
+        private DateTime lastStatusChangeTime = default(DateTime);
 
         private double lineCounter = 0;
         private double wasteCounter = 0;
@@ -31,9 +32,27 @@ namespace ProductionLineMQTTClient
         private PictureBox successIcon;
         private PictureBox errorIcon;
 
+        private FlowLayoutPanel panelCards;
+
+        public enum IconType 
+        {
+            Availability,
+            Performance,
+            Quality
+        }
+
         public Form1() 
         {
             InitializeComponent();
+
+            panelCards = new FlowLayoutPanel 
+            {
+                Dock = DockStyle.Top,
+                AutoSize = true,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = true
+            };
+            Controls.Add(panelCards);
 
             machineLabels.Add("M1", label1);
             machineLabels.Add("M2", label2);
@@ -54,13 +73,11 @@ namespace ProductionLineMQTTClient
         private void InitializeLabels() 
         {
             label6.Text = "Production Status: Unknown";
-            label7.Text = "Line Production Counter: 0";
+            label7.Text = "Production Counter: 0";
             label8.Text = "Waste Counter: 0";
             label9.Text = "Target: 0";
-            label10.Text = "Downtime: 0";
-            label13.Text = "Uptime: 0";
-            label11.Text = "OEE: 0%";
             label12.Text = "Robot System Automation is a dynamic manufacturing company founded in 1984 with the goal of building \ninnovative, automated production systems for the footwear industry.\nWe have extensive experience in this highly competitive field. Experience, combined with the desire to \ncontinually improve our products, services and processes, has made Robot System Automation's state of \nthe art production facility a world leader both in the study of new technologies and in the development of \nnew concepts for the application of robots in the footwear industry.";
+            label14.Text = "Production";
 
             label1.Font = new Font("Constantia", 10, FontStyle.Regular);
             label2.Font = new Font("Constantia", 10, FontStyle.Regular);
@@ -68,11 +85,25 @@ namespace ProductionLineMQTTClient
             label4.Font = new Font("Constantia", 10, FontStyle.Regular);
             label5.Font = new Font("Constantia", 10, FontStyle.Regular);
             label6.Font = new Font("Constantia", 10, FontStyle.Regular);
-            label11.Font = new Font("Constantia", 10, FontStyle.Regular);
+            label7.Font = new Font("Constantia", 10, FontStyle.Regular);
+            label8.Font = new Font("Constantia", 10, FontStyle.Regular);
+            label9.Font = new Font("Constantia", 10, FontStyle.Regular);
             label12.Font = new Font("Constantia", 10, FontStyle.Regular);
+            label14.Font = new Font("Constantia", 10, FontStyle.Regular);
 
             label6.Width = 460;
             label6.Height = 50;
+
+            alertTimer = new System.Windows.Forms.Timer();
+            alertTimer.Interval = 10000;
+            alertTimer.Tick += AlertTimer_Tick;
+
+            button1.FlatStyle = FlatStyle.Flat;
+            button1.FlatAppearance.BorderSize = 0;
+            button1.BackColor = Color.FromArgb(96, 176, 242);
+            button1.Font = new Font("Constantia", 10, FontStyle.Regular);
+            button1.AutoSize = false;
+            button1.Width = Math.Max(200, TextRenderer.MeasureText(button1.Text, button1.Font).Width);
         }
 
         private void InitializeIcons() 
@@ -88,20 +119,24 @@ namespace ProductionLineMQTTClient
                 FlatStyle = FlatStyle.Flat
             };
 
+            string successIconPath = Path.Combine(Application.StartupPath, "Images", "icons8-success-49.png");
+
             successIcon = new PictureBox 
             {
                 BackColor = Color.FromArgb(190, 254, 198),
-                Image = Image.FromFile(@"C:\Users\a.fetaj\source\repos\ProductionLineMQTTClient\ProductionLineMQTTClient\icons8-success-49.png"),
+                Image = Image.FromFile(successIconPath),
                 SizeMode = PictureBoxSizeMode.StretchImage,
                 Width = 25,
                 Height = 25,
                 Location = new Point(label6.Left + 5, label6.Top + 13)
             };
 
+            string errorIconPath = Path.Combine(Application.StartupPath, "Images", "icons8-error-48.png");
+
             errorIcon = new PictureBox 
             {
                 BackColor = Color.FromArgb(254, 222, 224),
-                Image = Image.FromFile(@"C:\Users\a.fetaj\source\repos\ProductionLineMQTTClient\ProductionLineMQTTClient\icons8-error-48.png"),
+                Image = Image.FromFile(errorIconPath),
                 SizeMode = PictureBoxSizeMode.StretchImage,
                 Width = 25,
                 Height = 25,
@@ -254,13 +289,14 @@ namespace ProductionLineMQTTClient
                 successIcon.Visible = false;
                 errorIcon.Visible = false;
                 closeButton.Visible = false;
-                
+
                 label6.ForeColor = Color.Black;
                 label6.BackColor = Color.Gray;
                 label6.TextAlign = ContentAlignment.MiddleCenter;
 
                 if (status == "1") 
                 {
+                    label6.Visible = true;
                     label6.Text = "Line in production";
                     label6.ForeColor = Color.Black;
                     label6.BackColor = Color.FromArgb(190, 254, 198);
@@ -275,14 +311,13 @@ namespace ProductionLineMQTTClient
                     closeButton.BackColor = Color.FromArgb(190, 254, 198);
                     closeButton.Cursor = Cursors.Hand;
 
-                    // Stop downtime calculation when the line is in production
                     StopDowntime();
                     StartUptime();
-
                     StartTimer();
                 } 
                 else if (status == "0") 
                 {
+                    label6.Visible = true;
                     label6.Text = "Line in stop";
                     label6.ForeColor = Color.Black;
                     label6.BackColor = Color.FromArgb(254, 222, 224);
@@ -297,10 +332,8 @@ namespace ProductionLineMQTTClient
                     closeButton.BackColor = Color.FromArgb(254, 222, 224);
                     closeButton.Cursor = Cursors.Hand;
 
-                    // Start downtime calculation when the line is stopped
                     StartDowntime();
                     StopUptime();
-
                     StartTimer();
                 } 
                 else 
@@ -315,20 +348,32 @@ namespace ProductionLineMQTTClient
 
                     StopTimer();
                 }
+
+                alertTimer.Start();
             }
+        }
+
+        private void AlertTimer_Tick(object sender, EventArgs e) 
+        {
+            successIcon.Visible = false;
+            errorIcon.Visible = false;
+            closeButton.Visible = false;
+            label6.Visible = false;
+
+            alertTimer.Stop();
         }
 
         private void StartTimer() 
         {
-            lastStatusChangeTime = DateTime.Now;  // Record the start time
+            lastStatusChangeTime = DateTime.Now;
         }
 
         private void StopTimer() 
         {
             if (lastStatusChangeTime != default(DateTime)) 
             {
-                statusDuration = DateTime.Now - lastStatusChangeTime;  // Calculate the duration
-                lastStatusChangeTime = default(DateTime);  // Reset the start time
+                statusDuration = DateTime.Now - lastStatusChangeTime;  
+                lastStatusChangeTime = default(DateTime); 
             }
         }
 
@@ -336,7 +381,6 @@ namespace ProductionLineMQTTClient
         {
             if (lastStopTime == default(DateTime)) 
             {
-                // Records the time when the line stops
                 lastStopTime = DateTime.Now;
             }
         }
@@ -345,18 +389,14 @@ namespace ProductionLineMQTTClient
         {
             if (lastStopTime != default(DateTime)) 
             {
-                // Calculate downtime duration
                 downtimeDuration = DateTime.Now - lastStopTime;
                 totalDowntime += downtimeDuration;
-                label10.Text = $"Downtime: {totalDowntime.TotalMinutes:F2} minutes";
-                // Reset the stop time
                 lastStopTime = default(DateTime);
             }
         }
 
         private void StartUptime() 
         {
-            // Track uptime start time
             lineStartTime = DateTime.Now;
         }
 
@@ -364,12 +404,8 @@ namespace ProductionLineMQTTClient
         {
             if (lineStartTime != default(DateTime)) 
             {
-                // Calculate uptime duration
                 TimeSpan currentUptime = DateTime.Now - lineStartTime;
-
                 totalUptime += currentUptime;
-
-                label13.Text = $"Uptime: {totalUptime.TotalMinutes:F2} minutes";
                 lineStartTime = default(DateTime);
             }
         }
@@ -397,15 +433,16 @@ namespace ProductionLineMQTTClient
             } 
             else 
             {
-                label7.Text = $"Line Production Counter: {count}";
+                label7.Text = $"Production Counter: {count}";
             }
         }
 
         private void Form1_Load(object sender, EventArgs e) 
         {
-            string imagePath = @"C:\Users\a.fetaj\source\repos\ProductionLineMQTTClient\ProductionLineMQTTClient\img-removebg-preview.png";
-            pictureBox1.Image = Image.FromFile(imagePath);
-            pictureBox1.Width = 100000;
+            Image loadedImage = Image.FromFile(Path.Combine(Application.StartupPath, "Images", "img-removebg-preview.png"));
+
+            pictureBox1.Image = loadedImage;
+            pictureBox1.Width = 150;
             pictureBox1.Height = 150;
         }
 
@@ -483,30 +520,20 @@ namespace ProductionLineMQTTClient
             targetPanel.Controls.Add(pieChart);
         }
 
-        private void M1_PieChart(double cycleTime) 
-        {
+        private void M1_PieChart(double cycleTime) =>
             UpdatePieChart(panel1, cycleTime, new Point(10, 10), System.Windows.Media.Brushes.Green);
-        }
 
-        private void M2_PieChart(double cycleTime) 
-        {
+        private void M2_PieChart(double cycleTime) =>
             UpdatePieChart(panel2, cycleTime, new Point(170, 10), System.Windows.Media.Brushes.Orange);
-        }
 
-        private void M3_PieChart(double cycleTime) 
-        {
+        private void M3_PieChart(double cycleTime) =>
             UpdatePieChart(panel3, cycleTime, new Point(230, 10), System.Windows.Media.Brushes.Blue);
-        }
 
-        private void M4_PieChart(double cycleTime) 
-        {
+        private void M4_PieChart(double cycleTime) =>
             UpdatePieChart(panel4, cycleTime, new Point(390, 10), System.Windows.Media.Brushes.Yellow);
-        }
 
-        private void M5_PieChart(double cycleTime) 
-        {
+        private void M5_PieChart(double cycleTime) =>
             UpdatePieChart(panel5, cycleTime, new Point(450, 10), System.Windows.Media.Brushes.Red);
-        }
 
         private void button1_Click(object sender, EventArgs e) 
         {
@@ -515,78 +542,102 @@ namespace ProductionLineMQTTClient
                 StopUptime();
             }
 
-            // Display the current total uptime in label13
-            label13.Text = $"Uptime: {totalUptime.TotalMinutes:F2} minutes";
-
-            double D = totalUptime.TotalMinutes / (totalUptime.TotalMinutes + downtimeDuration.TotalMinutes);
-            double E = lineCounter / targetCounter; 
-            double Q = (lineCounter - wasteCounter) / lineCounter; 
-
-            // Calculate OEE
-            double OEE = D * E * Q * 100;
-
-            if (label11.InvokeRequired) 
+            if (lastStopTime != default(DateTime)) 
             {
-                label11.Invoke(new Action(() => 
-                {
-                    label11.Text = $"OEE: {OEE:F2}%";
-                }));
-            } 
-            else 
-            {
-                label11.Text = $"OEE: {OEE:F2}%";
+                StopDowntime();
             }
 
-            // Debugging for validation
-            System.Diagnostics.Debug.WriteLine($"Uptime: {totalUptime}, Downtime: {downtimeDuration}, D: {D}, E: {E}, Q: {Q}, OEE: {OEE}");
+            double D = totalUptime.TotalMinutes / (totalUptime.TotalMinutes + totalDowntime.TotalMinutes);
+            double E = lineCounter / targetCounter;
+            double Q = (lineCounter - wasteCounter) / lineCounter;
 
-            ShowOEEPieChart(D, E, Q);
+            double OEE = D * E * Q * 100;
+
+            System.Diagnostics.Debug.WriteLine($"Uptime: {totalUptime}, Downtime: {totalDowntime}, D: {D}, E: {E}, Q: {Q}, OEE: {OEE}");
+
+            ShowOEEGauge(OEE);
+
+            ShowMetricCard(panel8, IconType.Availability, "Availability", $"{D:F2}");
+            ShowMetricCard(panel9, IconType.Performance, "Performance", $"{E:F2}");
+            ShowMetricCard(panel10, IconType.Quality, "Quality", $"{Q:F2}");
         }
 
-        private void ShowOEEPieChart(double availability, double performance, double quality) 
+        private void ShowOEEGauge(double oee) 
         {
             if (this.InvokeRequired) 
             {
-                this.Invoke(new Action(() => ShowOEEPieChart(availability, performance, quality)));
+                this.Invoke(new Action(() => ShowOEEGauge(oee)));
                 return;
             }
 
-            LiveCharts.WinForms.PieChart pieChart = new LiveCharts.WinForms.PieChart 
+            LiveCharts.WinForms.SolidGauge gauge = new LiveCharts.WinForms.SolidGauge 
             {
-                Size = new System.Drawing.Size(250, 250),
-                Location = new System.Drawing.Point(-5, -5) 
+                Width = 300,
+                Height = 250,
+                Margin = new Padding(10),
             };
 
-            SeriesCollection sers = new SeriesCollection
-            {
-                new PieSeries
-                {
-                    Title = "Availability",
-                    Values = new ChartValues<double> { availability * 100 },
-                    DataLabels = true,
-                    Fill = System.Windows.Media.Brushes.Green
-                },
-                new PieSeries
-                {
-                    Title = "Performance",
-                    Values = new ChartValues<double> { performance * 100 },
-                    DataLabels = true,
-                    Fill = System.Windows.Media.Brushes.Blue
-                },
-                new PieSeries
-                {
-                    Title = "Quality",
-                    Values = new ChartValues<double> { quality * 100 },
-                    DataLabels = true,
-                    Fill = System.Windows.Media.Brushes.Orange
-                }
-            };
+            gauge.From = 0;
+            gauge.To = 100;
+            gauge.Value = oee; 
+            gauge.LabelFormatter = value => $"{value:F2}%";
 
-            pieChart.Series = sers;
-
-            this.panel6.Controls.Clear();
-            this.panel6.Controls.Add(pieChart);
+            this.panel7.Controls.Clear();
+            this.panel7.Controls.Add(gauge);
         }
 
+        private Image GetIconForType(IconType iconType) 
+        {
+            string imagePath = string.Empty;
+
+            switch (iconType) 
+            {
+                case IconType.Availability:
+                    imagePath = Path.Combine(Application.StartupPath, "Images", "icons8-bar-chart-100.png");
+                    break;
+                case IconType.Performance:
+                    imagePath = Path.Combine(Application.StartupPath, "Images", "icons8-clock-100.png");
+                    break;
+                case IconType.Quality:
+                    imagePath = Path.Combine(Application.StartupPath, "Images", "icons8-check-mark2-100.png");
+                    break;
+                default:
+                    return null;
+            }
+
+            return Image.FromFile(imagePath);  
+        }
+
+        private void ShowMetricCard(Panel panel, IconType iconType, string metricName, string value) 
+        {
+            panel.Controls.Clear();  
+            panel.BorderStyle = BorderStyle.FixedSingle; 
+            panel.Width = 180;
+            panel.Height = 250;
+
+            PictureBox iconPictureBox = new PictureBox 
+            {
+                Image = GetIconForType(iconType),
+                SizeMode = PictureBoxSizeMode.CenterImage,
+                Width = 80,
+                Height = 120,
+                Dock = DockStyle.Top,
+                Margin = new Padding(10)
+            };
+
+            Label metricLabel = new Label 
+            {
+                Text = $"{metricName}: \n{value}",
+                Dock = DockStyle.Fill,
+                TextAlign = ContentAlignment.BottomCenter,
+                Font = new Font("Arial", 12, FontStyle.Bold),
+                ForeColor = Color.Black,
+                BackColor = Color.FromArgb(226, 234, 243),
+                Padding = new Padding(5)
+            };
+
+            panel.Controls.Add(iconPictureBox);
+            panel.Controls.Add(metricLabel);
+        }
     }
 }
