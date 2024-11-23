@@ -13,6 +13,8 @@ namespace ProductionLineMQTTClient
         private IMqttClient mqttClient;
         private System.Windows.Forms.Label lblProductionStatus;
         private Dictionary<string, Label> machineLabels = new Dictionary<string, Label>();
+        private readonly Dictionary<string, double> machineTargetTimes = new Dictionary<string, double>();
+        private Dictionary<string, double> machineActiveTimes = new Dictionary<string, double>();
 
         private System.Windows.Forms.Timer alertTimer;
         private DateTime lastStopTime;
@@ -78,6 +80,9 @@ namespace ProductionLineMQTTClient
             label9.Text = "Target: 0";
             label12.Text = "Robot System Automation is a dynamic manufacturing company founded in 1984 with the goal of building \ninnovative, automated production systems for the footwear industry.\nWe have extensive experience in this highly competitive field. Experience, combined with the desire to \ncontinually improve our products, services and processes, has made Robot System Automation's state of \nthe art production facility a world leader both in the study of new technologies and in the development of \nnew concepts for the application of robots in the footwear industry.";
             label14.Text = "Production";
+            label10.Text = "Overall \nEquipment \nEffectiveness";
+            //label11.Text = "Uptime:";
+            //label13.Text = "Downtime:";
 
             label1.Font = new Font("Constantia", 10, FontStyle.Regular);
             label2.Font = new Font("Constantia", 10, FontStyle.Regular);
@@ -90,6 +95,9 @@ namespace ProductionLineMQTTClient
             label9.Font = new Font("Constantia", 10, FontStyle.Regular);
             label12.Font = new Font("Constantia", 10, FontStyle.Regular);
             label14.Font = new Font("Constantia", 10, FontStyle.Regular);
+            label10.Font = new Font("Constantia", 10, FontStyle.Regular);
+            //label11.Font = new Font("Constantia", 10, FontStyle.Regular);
+            //label13.Font = new Font("Constantia", 10, FontStyle.Regular);
 
             label6.Width = 460;
             label6.Height = 50;
@@ -102,8 +110,7 @@ namespace ProductionLineMQTTClient
             button1.FlatAppearance.BorderSize = 0;
             button1.BackColor = Color.FromArgb(96, 176, 242);
             button1.Font = new Font("Constantia", 10, FontStyle.Regular);
-            button1.AutoSize = false;
-            button1.Width = Math.Max(200, TextRenderer.MeasureText(button1.Text, button1.Font).Width);
+            button1.Width = 200;
         }
 
         private void InitializeIcons() 
@@ -208,10 +215,15 @@ namespace ProductionLineMQTTClient
             {
                 await mqttClient.SubscribeAsync("rsa/mainpage/line_status");
                 await mqttClient.SubscribeAsync("rsa/mainpage/m1_counter");
+                await mqttClient.SubscribeAsync("rsa/mainpage/m1_counter_target");
                 await mqttClient.SubscribeAsync("rsa/mainpage/m2_counter");
+                await mqttClient.SubscribeAsync("rsa/mainpage/m2_counter_target");
                 await mqttClient.SubscribeAsync("rsa/mainpage/m3_counter");
+                await mqttClient.SubscribeAsync("rsa/mainpage/m3_counter_target");
                 await mqttClient.SubscribeAsync("rsa/mainpage/m4_counter");
+                await mqttClient.SubscribeAsync("rsa/mainpage/m4_counter_target");
                 await mqttClient.SubscribeAsync("rsa/mainpage/m5_counter");
+                await mqttClient.SubscribeAsync("rsa/mainpage/m5_counter_target");
                 await mqttClient.SubscribeAsync("rsa/prodpage/line_counter");
                 await mqttClient.SubscribeAsync("rsa/prodpage/waste_counter");
                 await mqttClient.SubscribeAsync("rsa/prodpage/target");
@@ -235,27 +247,108 @@ namespace ProductionLineMQTTClient
                 case "rsa/mainpage/m1_counter":
                     UpdateCycleTime("M1", payload);
                     double.TryParse(payload, out double machineActiveTime);
-                    M1_PieChart(machineActiveTime);
+                    machineActiveTimes["M1"] = machineActiveTime;
+                    if (machineTargetTimes.TryGetValue("M1", out double m1TotalTime)) {
+                        M1_PieChart(machineActiveTime, m1TotalTime);
+                    } else {
+                        System.Diagnostics.Debug.WriteLine("Target time for M1 is not set yet.");
+                        M1_PieChart(machineActiveTime, 60);
+                    }
+                    break;
+                case "rsa/mainpage/m1_counter_target":
+                    double.TryParse(payload, out double m1TargetTime);
+                    machineTargetTimes["M1"] = m1TargetTime;
+                    if (machineActiveTimes.TryGetValue("M1", out double machineActiveTimeM1)) {
+                        M1_PieChart(machineActiveTimeM1, m1TargetTime);
+                    }
+                    else {
+                        System.Diagnostics.Debug.WriteLine("Active time for M1 is not available. Using default value.");
+                        M1_PieChart(0, m1TargetTime);
+                    }
                     break;
                 case "rsa/mainpage/m2_counter":
                     UpdateCycleTime("M2", payload);
                     double.TryParse(payload, out double machine2ActiveTime);
-                    M2_PieChart(machine2ActiveTime);
+                    machineActiveTimes["M2"] = machine2ActiveTime;
+                    if (machineTargetTimes.TryGetValue("M2", out double m2TotalTime)) {
+                        M2_PieChart(machine2ActiveTime, m2TotalTime);
+                    } else {
+                        System.Diagnostics.Debug.WriteLine("Target time for M2 is not set yet.");
+                        M2_PieChart(machine2ActiveTime, 60);
+                    }
+                    break;
+                case "rsa/mainpage/m2_counter_target":
+                    double.TryParse(payload, out double m2TargetTime);
+                    machineTargetTimes["M2"] = m2TargetTime;
+                    if (machineActiveTimes.TryGetValue("M2", out double machineActiveTimeM2)) {
+                        M2_PieChart(machineActiveTimeM2, m2TargetTime);
+                    } else {
+                        System.Diagnostics.Debug.WriteLine("Active time for M2 is not available. Using default value.");
+                        M2_PieChart(0, m2TargetTime);
+                    }
                     break;
                 case "rsa/mainpage/m3_counter":
                     UpdateCycleTime("M3", payload);
                     double.TryParse(payload, out double machine3ActiveTime);
-                    M3_PieChart(machine3ActiveTime);
+                    machineActiveTimes["M3"] = machine3ActiveTime;
+                    if (machineTargetTimes.TryGetValue("M3", out double m3TotalTime)) {
+                        M3_PieChart(machine3ActiveTime, m3TotalTime);
+                    } else {
+                        System.Diagnostics.Debug.WriteLine("Target time for M3 is not set yet.");
+                        M3_PieChart(machine3ActiveTime, 60);
+                    }
+                    break;
+                case "rsa/mainpage/m3_counter_target":
+                    double.TryParse(payload, out double m3TargetTime);
+                    machineTargetTimes["M3"] = m3TargetTime;
+                    if (machineActiveTimes.TryGetValue("M3", out double machineActiveTimeM3)) {
+                        M3_PieChart(machineActiveTimeM3, m3TargetTime);
+                    } else {
+                        System.Diagnostics.Debug.WriteLine("Active time for M3 is not available. Using default value.");
+                        M3_PieChart(0, m3TargetTime);
+                    }
                     break;
                 case "rsa/mainpage/m4_counter":
                     UpdateCycleTime("M4", payload);
                     double.TryParse(payload, out double machine4ActiveTime);
-                    M4_PieChart(machine4ActiveTime);
+                    machineActiveTimes["M4"] = machine4ActiveTime;
+                    if (machineTargetTimes.TryGetValue("M4", out double m4TotalTime)) {
+                        M4_PieChart(machine4ActiveTime, m4TotalTime);
+                    } else {
+                        System.Diagnostics.Debug.WriteLine("Target time for M4 is not set yet.");
+                        M4_PieChart(machine4ActiveTime, 60);
+                    }
+                    break;
+                case "rsa/mainpage/m4_counter_target":
+                    double.TryParse(payload, out double m4TargetTime);
+                    machineTargetTimes["M4"] = m4TargetTime;
+                    if (machineActiveTimes.TryGetValue("M4", out double machineActiveTimeM4)) {
+                        M4_PieChart(machineActiveTimeM4, m4TargetTime);
+                    } else {
+                        System.Diagnostics.Debug.WriteLine("Active time for M4 is not available. Using default value.");
+                        M4_PieChart(0, m4TargetTime);
+                    }
                     break;
                 case "rsa/mainpage/m5_counter":
                     UpdateCycleTime("M5", payload);
                     double.TryParse(payload, out double machine5ActiveTime);
-                    M5_PieChart(machine5ActiveTime);
+                    machineActiveTimes["M5"] = machine5ActiveTime;
+                    if (machineTargetTimes.TryGetValue("M5", out double m5TotalTime)) {
+                        M5_PieChart(machine5ActiveTime, m5TotalTime);
+                    } else {
+                        System.Diagnostics.Debug.WriteLine("Target time for M5 is not set yet.");
+                        M5_PieChart(machine5ActiveTime, 60);
+                    }
+                    break;
+                case "rsa/mainpage/m5_counter_target":
+                    double.TryParse(payload, out double m5TargetTime);
+                    machineTargetTimes["M5"] = m5TargetTime;
+                    if (machineActiveTimes.TryGetValue("M5", out double machineActiveTimeM5)) {
+                        M5_PieChart(machineActiveTimeM5, m5TargetTime);
+                    } else {
+                        System.Diagnostics.Debug.WriteLine("Active time for M5 is not available. Using default value.");
+                        M5_PieChart(0, m5TargetTime);
+                    }
                     break;
                 case "rsa/prodpage/line_counter":
                     UpdateProductionCounter(payload);
@@ -391,6 +484,7 @@ namespace ProductionLineMQTTClient
             {
                 downtimeDuration = DateTime.Now - lastStopTime;
                 totalDowntime += downtimeDuration;
+                //label13.Text = $"Downtime: {totalDowntime.TotalSeconds:F0} seconds";
                 lastStopTime = default(DateTime);
             }
         }
@@ -406,6 +500,7 @@ namespace ProductionLineMQTTClient
             {
                 TimeSpan currentUptime = DateTime.Now - lineStartTime;
                 totalUptime += currentUptime;
+                //label11.Text = $"Uptime: {totalUptime.TotalSeconds:F0} seconds";
                 lineStartTime = default(DateTime);
             }
         }
@@ -442,7 +537,7 @@ namespace ProductionLineMQTTClient
             Image loadedImage = Image.FromFile(Path.Combine(Application.StartupPath, "Images", "img-removebg-preview.png"));
 
             pictureBox1.Image = loadedImage;
-            pictureBox1.Width = 150;
+            pictureBox1.Width = 200;
             pictureBox1.Height = 150;
         }
 
@@ -476,11 +571,11 @@ namespace ProductionLineMQTTClient
             }
         }
 
-        private void UpdatePieChart(Panel targetPanel, double cycleTime, Point location, System.Windows.Media.Brush activeColor) 
+        private void UpdatePieChart(Panel targetPanel, double cycleTime, double totalTime, Point location, System.Windows.Media.Brush activeColor) 
         {
             if (this.InvokeRequired) 
             {
-                this.Invoke(new Action(() => UpdatePieChart(targetPanel, cycleTime, location, activeColor)));
+                this.Invoke(new Action(() => UpdatePieChart(targetPanel, cycleTime, totalTime, location, activeColor)));
                 return;
             }
 
@@ -490,7 +585,6 @@ namespace ProductionLineMQTTClient
                 Location = location
             };
 
-            double totalTime = 60;
             double remainingTime = totalTime - cycleTime;
 
             SeriesCollection sers = new SeriesCollection
@@ -520,20 +614,20 @@ namespace ProductionLineMQTTClient
             targetPanel.Controls.Add(pieChart);
         }
 
-        private void M1_PieChart(double cycleTime) =>
-            UpdatePieChart(panel1, cycleTime, new Point(10, 10), System.Windows.Media.Brushes.Green);
+        private void M1_PieChart(double cycleTime, double totalTime) =>
+            UpdatePieChart(panel1, cycleTime, totalTime, new Point(10, 10), System.Windows.Media.Brushes.Green);
 
-        private void M2_PieChart(double cycleTime) =>
-            UpdatePieChart(panel2, cycleTime, new Point(170, 10), System.Windows.Media.Brushes.Orange);
+        private void M2_PieChart(double cycleTime, double totalTime) =>
+            UpdatePieChart(panel2, cycleTime, totalTime,new Point(170, 10), System.Windows.Media.Brushes.Orange);
 
-        private void M3_PieChart(double cycleTime) =>
-            UpdatePieChart(panel3, cycleTime, new Point(230, 10), System.Windows.Media.Brushes.Blue);
+        private void M3_PieChart(double cycleTime, double totalTime) =>
+            UpdatePieChart(panel3, cycleTime, totalTime,new Point(230, 10), System.Windows.Media.Brushes.Blue);
 
-        private void M4_PieChart(double cycleTime) =>
-            UpdatePieChart(panel4, cycleTime, new Point(390, 10), System.Windows.Media.Brushes.Yellow);
+        private void M4_PieChart(double cycleTime, double totalTime) =>
+            UpdatePieChart(panel4, cycleTime, totalTime,new Point(390, 10), System.Windows.Media.Brushes.Yellow);
 
-        private void M5_PieChart(double cycleTime) =>
-            UpdatePieChart(panel5, cycleTime, new Point(450, 10), System.Windows.Media.Brushes.Red);
+        private void M5_PieChart(double cycleTime, double totalTime) =>
+            UpdatePieChart(panel5, cycleTime, totalTime,new Point(450, 10), System.Windows.Media.Brushes.Red);
 
         private void button1_Click(object sender, EventArgs e) 
         {
@@ -557,9 +651,9 @@ namespace ProductionLineMQTTClient
 
             ShowOEEGauge(OEE);
 
-            ShowMetricCard(panel8, IconType.Availability, "Availability", $"{D:F2}");
-            ShowMetricCard(panel9, IconType.Performance, "Performance", $"{E:F2}");
-            ShowMetricCard(panel10, IconType.Quality, "Quality", $"{Q:F2}");
+            ShowMetricCard(panel8, IconType.Availability, "Availability", $"{D:P0}");
+            ShowMetricCard(panel9, IconType.Performance, "Performance", $"{E:P0}");
+            ShowMetricCard(panel10, IconType.Quality, "Quality", $"\n{Q:P0}");
         }
 
         private void ShowOEEGauge(double oee) 
@@ -627,7 +721,7 @@ namespace ProductionLineMQTTClient
 
             Label metricLabel = new Label 
             {
-                Text = $"{metricName}: \n{value}",
+                Text = $"{metricName}: {value}",
                 Dock = DockStyle.Fill,
                 TextAlign = ContentAlignment.BottomCenter,
                 Font = new Font("Arial", 12, FontStyle.Bold),

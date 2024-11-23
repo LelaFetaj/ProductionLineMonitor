@@ -39,6 +39,7 @@
             label1 = new Label();
             pictureBox1 = new PictureBox();
             tabPage2 = new TabPage();
+            label10 = new Label();
             label14 = new Label();
             panel10 = new Panel();
             panel9 = new Panel();
@@ -195,6 +196,7 @@
             // 
             // tabPage2
             // 
+            tabPage2.Controls.Add(label10);
             tabPage2.Controls.Add(label14);
             tabPage2.Controls.Add(panel10);
             tabPage2.Controls.Add(panel9);
@@ -211,6 +213,15 @@
             tabPage2.TabIndex = 1;
             tabPage2.Text = "Productivity Page";
             tabPage2.UseVisualStyleBackColor = true;
+            // 
+            // label10
+            // 
+            label10.AutoSize = true;
+            label10.Location = new Point(46, 378);
+            label10.Name = "label10";
+            label10.Size = new Size(41, 25);
+            label10.TabIndex = 11;
+            label10.Text = "oee";
             // 
             // label14
             // 
@@ -251,9 +262,9 @@
             // 
             // button1
             // 
-            button1.Location = new Point(60, 348);
+            button1.Location = new Point(46, 310);
             button1.Name = "button1";
-            button1.Size = new Size(141, 34);
+            button1.Size = new Size(137, 43);
             button1.TabIndex = 5;
             button1.Text = "Calculate OEE";
             button1.UseVisualStyleBackColor = true;
@@ -331,5 +342,6 @@
         private Panel panel9;
         private Panel panel8;
         private Label label14;
+        private Label label10;
     }
 }
