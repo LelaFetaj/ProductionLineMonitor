@@ -45,7 +45,6 @@
             panel9 = new Panel();
             panel8 = new Panel();
             panel7 = new Panel();
-            button1 = new Button();
             label9 = new Label();
             label8 = new Label();
             label7 = new Label();
@@ -202,7 +201,6 @@
             tabPage2.Controls.Add(panel9);
             tabPage2.Controls.Add(panel8);
             tabPage2.Controls.Add(panel7);
-            tabPage2.Controls.Add(button1);
             tabPage2.Controls.Add(label9);
             tabPage2.Controls.Add(label8);
             tabPage2.Controls.Add(label7);
@@ -217,7 +215,7 @@
             // label10
             // 
             label10.AutoSize = true;
-            label10.Location = new Point(46, 378);
+            label10.Location = new Point(46, 344);
             label10.Name = "label10";
             label10.Size = new Size(41, 25);
             label10.TabIndex = 11;
@@ -259,16 +257,6 @@
             panel7.Name = "panel7";
             panel7.Size = new Size(363, 243);
             panel7.TabIndex = 0;
-            // 
-            // button1
-            // 
-            button1.Location = new Point(46, 310);
-            button1.Name = "button1";
-            button1.Size = new Size(137, 43);
-            button1.TabIndex = 5;
-            button1.Text = "Calculate OEE";
-            button1.UseVisualStyleBackColor = true;
-            button1.Click += button1_Click;
             // 
             // label9
             // 
@@ -336,7 +324,6 @@
         private Panel panel3;
         private Panel panel4;
         private Panel panel5;
-        private Button button1;
         private Panel panel7;
         private Panel panel10;
         private Panel panel9;
